@@ -310,8 +310,14 @@ squareView rowNum colNum mark =
   let
     location =
       ( rowNum, colNum )
+
+    action =
+      if mark == NA then
+        (Turn location)
+      else
+        NoOp
   in
-    button (Signal.message actions.address (Turn location)) (markToString mark)
+    button (Signal.message actions.address action) (markToString mark)
 
 
 rowView : Int -> Int -> List Mark -> Element
@@ -340,18 +346,16 @@ view address model =
       ]
 
     statusMessage =
-      Debug.log
-        "message: "
-        (case model.status of
-          Win ->
-            (markToString model.turn) ++ " Wins!"
+      (case model.status of
+        Win ->
+          (markToString model.turn) ++ " Wins!"
 
-          Tie ->
-            "It's a Tie!"
+        Tie ->
+          "It's a Tie!"
 
-          Ongoing ->
-            "Game is ongoing."
-        )
+        Ongoing ->
+          "Game is ongoing."
+      )
   in
     flow
       down

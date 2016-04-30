@@ -5985,15 +5985,16 @@ Elm.Main.make = function (_elm) {
    });
    var markToString = function (mark) {    var _p2 = mark;switch (_p2.ctor) {case "X": return "X";case "O": return "O";default: return "";}};
    var actions = $Signal.mailbox(NoOp);
+   var NA = {ctor: "NA"};
    var squareView = F3(function (rowNum,colNum,mark) {
       var location = {ctor: "_Tuple2",_0: rowNum,_1: colNum};
-      return A2($Graphics$Input.button,A2($Signal.message,actions.address,Turn(location)),markToString(mark));
+      var action = _U.eq(mark,NA) ? Turn(location) : NoOp;
+      return A2($Graphics$Input.button,A2($Signal.message,actions.address,action),markToString(mark));
    });
    var rowView = F3(function (bs,rowNum,items) {
       var squares = A3($List.map2,squareView(rowNum),_U.range(0,bs),items);
       return A2($Graphics$Element.flow,$Graphics$Element.right,squares);
    });
-   var NA = {ctor: "NA"};
    var O = {ctor: "O"};
    var X = {ctor: "X"};
    var changeTurn = function (model) {
@@ -6029,15 +6030,13 @@ Elm.Main.make = function (_elm) {
       return _U.update(model,{status: newStatus});
    };
    var view = F2(function (address,model) {
-      var statusMessage = A2($Debug.log,
-      "message: ",
-      function () {
+      var statusMessage = function () {
          var _p5 = model.status;
          switch (_p5.ctor)
          {case "Win": return A2($Basics._op["++"],markToString(model.turn)," Wins!");
             case "Tie": return "It\'s a Tie!";
             default: return "Game is ongoing.";}
-      }());
+      }();
       var buttons = _U.list([A2($Graphics$Input.button,A2($Signal.message,actions.address,Reset),"Reset Game")
                             ,A2($Graphics$Input.button,A2($Signal.message,actions.address,IncreaseBoard),"Increase Board Size")]);
       var board = _U.eq(model.status,Ongoing) ? A2($Graphics$Element.flow,
