@@ -2,6 +2,7 @@ module Main (..) where
 
 import Graphics.Element exposing (..)
 import Graphics.Input exposing (..)
+import Random exposing (generate, int, initialSeed)
 
 
 -- Model
@@ -12,15 +13,17 @@ type alias Model =
   , turn : Mark
   , status : Status
   , boardSize : Int
+  , randSeed : Random.Seed
   }
 
 
-initialModel : Int -> Model
-initialModel bs =
+initialModel : Int -> Random.Seed -> Model
+initialModel bs rs =
   { board = initialBoard bs
   , turn = X
   , status = Ongoing
   , boardSize = bs
+  , randSeed = rs
   }
 
 
@@ -64,7 +67,8 @@ actions =
 
 model : Signal Model
 model =
-  Signal.foldp update (initialModel 2) actions.signal
+  -- initialize model with board size and random seed
+  Signal.foldp update (initialModel 2 (initialSeed 6773)) actions.signal
 
 
 
@@ -162,6 +166,38 @@ invertDownVertical board =
     [0..((List.length board) - 1)]
 
 
+randLocation : Model -> ( Location, Model )
+randLocation model =
+  let
+    randRange =
+      int 0 ((List.length model.board) - 1)
+
+    rowResult =
+      generate randRange model.randSeed
+
+    colResult =
+      generate randRange (snd rowResult)
+
+    -- use new seed from rowResult
+    location =
+      ( (fst rowResult), (fst colResult) )
+
+    newSeed =
+      snd colResult
+
+    newModel =
+      { model | randSeed = newSeed }
+
+    markAtLocation =
+      get (fst location) model.board
+        |> get (snd location)
+  in
+    if markAtLocation == NA then
+      ( location, newModel )
+    else
+      randLocation newModel
+
+
 
 -- Core Gameplay
 
@@ -172,7 +208,6 @@ checkWin model =
     -- if sum of row = 3 for items that match mark
     scoreBoard =
       createScoreboard model.turn model.board
-        |> Debug.log "board: "
 
     checkRow =
       scoreBoard
@@ -284,10 +319,10 @@ update action model =
       model
 
     Reset ->
-      initialModel 2
+      initialModel 2 model.randSeed
 
     IncreaseBoard ->
-      initialModel (model.boardSize + 1)
+      initialModel (model.boardSize + 1) model.randSeed
 
     Turn location ->
       let
@@ -295,8 +330,22 @@ update action model =
           updateSquare location model
             |> checkWin
             |> (\aModel -> changeTurn aModel)
-
-        -- simulate random turn
+            |> (\bModel ->
+                  -- this is a recursive call to update for the cpu move if turn == O
+                  -- can't call this if someone has won because causes infinite loop
+                  if bModel.status /= Ongoing then
+                    changeTurn bModel
+                  else
+                    (if bModel.turn == O then
+                      let
+                        ( loc, newModel ) =
+                          randLocation bModel
+                      in
+                        update (Turn loc) newModel
+                     else
+                      bModel
+                    )
+               )
       in
         newModel
 
