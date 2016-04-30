@@ -6125,26 +6125,52 @@ Elm.Random.make = function (_elm) {
                                ,maxInt: maxInt
                                ,generate: generate
                                ,initialSeed: initialSeed};
-};Elm.Main = Elm.Main || {};
-Elm.Main.make = function (_elm) {
+};Elm.Model = Elm.Model || {};
+Elm.Model.make = function (_elm) {
    "use strict";
-   _elm.Main = _elm.Main || {};
-   if (_elm.Main.values) return _elm.Main.values;
+   _elm.Model = _elm.Model || {};
+   if (_elm.Model.values) return _elm.Model.values;
    var _U = Elm.Native.Utils.make(_elm),
    $Basics = Elm.Basics.make(_elm),
    $Debug = Elm.Debug.make(_elm),
-   $Graphics$Element = Elm.Graphics.Element.make(_elm),
-   $Graphics$Input = Elm.Graphics.Input.make(_elm),
    $List = Elm.List.make(_elm),
    $Maybe = Elm.Maybe.make(_elm),
    $Random = Elm.Random.make(_elm),
    $Result = Elm.Result.make(_elm),
    $Signal = Elm.Signal.make(_elm);
    var _op = {};
-   var Turn = function (a) {    return {ctor: "Turn",_0: a};};
-   var IncreaseBoard = {ctor: "IncreaseBoard"};
-   var Reset = {ctor: "Reset"};
-   var NoOp = {ctor: "NoOp"};
+   var NA = {ctor: "NA"};
+   var O = {ctor: "O"};
+   var X = {ctor: "X"};
+   var Win = {ctor: "Win"};
+   var Tie = {ctor: "Tie"};
+   var Ongoing = {ctor: "Ongoing"};
+   var initialBoard = function (numRows) {
+      var returnNum = function (_p0) {    return NA;};
+      return A2($List.map,function (i) {    return A2($List.map,returnNum,_U.range(0,numRows));},_U.range(0,numRows));
+   };
+   var initialModel = F2(function (bs,rs) {    return {board: initialBoard(bs),turn: X,status: Ongoing,boardSize: bs,randSeed: rs};});
+   var Model = F5(function (a,b,c,d,e) {    return {board: a,turn: b,status: c,boardSize: d,randSeed: e};});
+   return _elm.Model.values = {_op: _op,Model: Model,initialModel: initialModel,initialBoard: initialBoard,Ongoing: Ongoing,Tie: Tie,Win: Win,X: X,O: O,NA: NA};
+};Elm.GameLogic = Elm.GameLogic || {};
+Elm.GameLogic.make = function (_elm) {
+   "use strict";
+   _elm.GameLogic = _elm.GameLogic || {};
+   if (_elm.GameLogic.values) return _elm.GameLogic.values;
+   var _U = Elm.Native.Utils.make(_elm),
+   $Basics = Elm.Basics.make(_elm),
+   $Debug = Elm.Debug.make(_elm),
+   $List = Elm.List.make(_elm),
+   $Maybe = Elm.Maybe.make(_elm),
+   $Model = Elm.Model.make(_elm),
+   $Random = Elm.Random.make(_elm),
+   $Result = Elm.Result.make(_elm),
+   $Signal = Elm.Signal.make(_elm);
+   var _op = {};
+   var changeTurn = function (model) {
+      var newTurn = function () {    var _p0 = model.turn;switch (_p0.ctor) {case "X": return $Model.O;case "O": return $Model.X;default: return $Model.NA;}}();
+      return _U.update(model,{turn: newTurn});
+   };
    var updateSquare = F2(function (location,model) {
       var newBoard = A3($List.map2,
       F2(function (x,row) {
@@ -6158,11 +6184,11 @@ Elm.Main.make = function (_elm) {
       return _U.update(model,{board: newBoard});
    });
    var fromJust = function (x) {
-      var _p0 = x;
-      if (_p0.ctor === "Just") {
-            return _p0._0;
+      var _p1 = x;
+      if (_p1.ctor === "Just") {
+            return _p1._0;
          } else {
-            return _U.crashCase("Main",{start: {line: 126,column: 3},end: {line: 131,column: 44}},_p0)("error: fromJust Nothing");
+            return _U.crashCase("GameLogic",{start: {line: 45,column: 3},end: {line: 50,column: 44}},_p1)("error: fromJust Nothing");
          }
    };
    var get = F2(function (n,xs) {    return fromJust($List.head(A2($List.drop,n,xs)));});
@@ -6176,17 +6202,6 @@ Elm.Main.make = function (_elm) {
    var invertDownVertical = function (board) {
       return A3($List.map2,F2(function (row,index) {    return _U.eq(A2(get,0 + index,row),1) ? 1 : 0;}),board,_U.range(0,$List.length(board) - 1));
    };
-   var createScoreboard = F2(function (mark,board) {
-      return A3($List.map2,
-      F2(function (row,items) {
-         return A3($List.map2,F2(function (col,item) {    return _U.eq(item,mark) ? 1 : 0;}),_U.range(0,$List.length(board) - 1),items);
-      }),
-      _U.range(0,$List.length(board) - 1),
-      board);
-   });
-   var markToString = function (mark) {    var _p2 = mark;switch (_p2.ctor) {case "X": return "X";case "O": return "O";default: return "";}};
-   var actions = $Signal.mailbox(NoOp);
-   var NA = {ctor: "NA"};
    var randLocation = function (model) {
       randLocation: while (true) {
          var randRange = A2($Random.$int,0,$List.length(model.board) - 1);
@@ -6196,121 +6211,130 @@ Elm.Main.make = function (_elm) {
          var markAtLocation = A2(get,$Basics.snd(location),A2(get,$Basics.fst(location),model.board));
          var newSeed = $Basics.snd(colResult);
          var newModel = _U.update(model,{randSeed: newSeed});
-         if (_U.eq(markAtLocation,NA)) return {ctor: "_Tuple2",_0: location,_1: newModel}; else {
+         if (_U.eq(markAtLocation,$Model.NA)) return {ctor: "_Tuple2",_0: location,_1: newModel}; else {
                var _v2 = newModel;
                model = _v2;
                continue randLocation;
             }
       }
    };
-   var squareView = F3(function (rowNum,colNum,mark) {
-      var location = {ctor: "_Tuple2",_0: rowNum,_1: colNum};
-      var action = _U.eq(mark,NA) ? Turn(location) : NoOp;
-      return A2($Graphics$Input.button,A2($Signal.message,actions.address,action),markToString(mark));
+   var listToStatus = function (items) {    return _U.eq($List.sum(items),$List.length(items)) ? $Model.Win : $Model.Ongoing;};
+   var createScoreboard = F2(function (mark,board) {
+      return A3($List.map2,
+      F2(function (row,items) {
+         return A3($List.map2,F2(function (col,item) {    return _U.eq(item,mark) ? 1 : 0;}),_U.range(0,$List.length(board) - 1),items);
+      }),
+      _U.range(0,$List.length(board) - 1),
+      board);
    });
-   var rowView = F3(function (bs,rowNum,items) {
-      var squares = A3($List.map2,squareView(rowNum),_U.range(0,bs),items);
-      return A2($Graphics$Element.flow,$Graphics$Element.right,squares);
-   });
-   var O = {ctor: "O"};
-   var X = {ctor: "X"};
-   var changeTurn = function (model) {
-      var newTurn = function () {    var _p3 = model.turn;switch (_p3.ctor) {case "X": return O;case "O": return X;default: return NA;}}();
-      return _U.update(model,{turn: newTurn});
-   };
-   var Win = {ctor: "Win"};
-   var Tie = {ctor: "Tie"};
-   var Ongoing = {ctor: "Ongoing"};
-   var listToStatus = function (items) {    return _U.eq($List.sum(items),$List.length(items)) ? Win : Ongoing;};
    var checkWin = function (model) {
-      var remainingMoves = $List.sum(A2($List.map,$List.sum,A2(createScoreboard,NA,model.board)));
+      var remainingMoves = $List.sum(A2($List.map,$List.sum,A2(createScoreboard,$Model.NA,model.board)));
       var scoreBoard = A2(createScoreboard,model.turn,model.board);
       var checkRow = A2($List.map,listToStatus,scoreBoard);
       var checkCol = A2($List.map,listToStatus,invertScoreboard(scoreBoard));
       var checkUpVertical = listToStatus(invertUpVertical(scoreBoard));
       var checkDownVertical = listToStatus(invertDownVertical(scoreBoard));
       var status = function (v) {
-         return _U.eq(v,true) ? Win : Ongoing;
+         return _U.eq(v,true) ? $Model.Win : $Model.Ongoing;
       }(A2($List.member,
-      Win,
+      $Model.Win,
       function (v) {
          return A2($List._op["::"],checkDownVertical,v);
       }(function (v) {    return A2($List._op["::"],checkUpVertical,v);}(A2($List.append,checkRow,checkCol)))));
       var newStatus = function () {
-         var _p4 = _U.eq(remainingMoves,0);
-         if (_p4 === true) {
-               return _U.eq(status,Ongoing) ? Tie : status;
+         var _p3 = _U.eq(remainingMoves,0);
+         if (_p3 === true) {
+               return _U.eq(status,$Model.Ongoing) ? $Model.Tie : status;
             } else {
                return status;
             }
       }();
       return _U.update(model,{status: newStatus});
    };
+   return _elm.GameLogic.values = {_op: _op
+                                  ,createScoreboard: createScoreboard
+                                  ,listToStatus: listToStatus
+                                  ,get: get
+                                  ,fromJust: fromJust
+                                  ,invertScoreboard: invertScoreboard
+                                  ,invertUpVertical: invertUpVertical
+                                  ,invertDownVertical: invertDownVertical
+                                  ,randLocation: randLocation
+                                  ,checkWin: checkWin
+                                  ,updateSquare: updateSquare
+                                  ,changeTurn: changeTurn};
+};Elm.Main = Elm.Main || {};
+Elm.Main.make = function (_elm) {
+   "use strict";
+   _elm.Main = _elm.Main || {};
+   if (_elm.Main.values) return _elm.Main.values;
+   var _U = Elm.Native.Utils.make(_elm),
+   $Basics = Elm.Basics.make(_elm),
+   $Debug = Elm.Debug.make(_elm),
+   $GameLogic = Elm.GameLogic.make(_elm),
+   $Graphics$Element = Elm.Graphics.Element.make(_elm),
+   $Graphics$Input = Elm.Graphics.Input.make(_elm),
+   $List = Elm.List.make(_elm),
+   $Maybe = Elm.Maybe.make(_elm),
+   $Model = Elm.Model.make(_elm),
+   $Random = Elm.Random.make(_elm),
+   $Result = Elm.Result.make(_elm),
+   $Signal = Elm.Signal.make(_elm);
+   var _op = {};
+   var Turn = function (a) {    return {ctor: "Turn",_0: a};};
+   var update = F2(function (action,model) {
+      var _p0 = action;
+      switch (_p0.ctor)
+      {case "NoOp": return model;
+         case "Reset": return A2($Model.initialModel,2,model.randSeed);
+         case "IncreaseBoard": return A2($Model.initialModel,model.boardSize + 1,model.randSeed);
+         default: var newModel = function (bModel) {
+              if (!_U.eq(bModel.status,$Model.Ongoing)) return $GameLogic.changeTurn(bModel); else if (_U.eq(bModel.turn,$Model.O)) {
+                       var _p1 = $GameLogic.randLocation(bModel);
+                       var loc = _p1._0;
+                       var newModel = _p1._1;
+                       return A2(update,Turn(loc),newModel);
+                    } else return bModel;
+           }(function (aModel) {    return $GameLogic.changeTurn(aModel);}($GameLogic.checkWin(A2($GameLogic.updateSquare,_p0._0,model))));
+           return newModel;}
+   });
+   var IncreaseBoard = {ctor: "IncreaseBoard"};
+   var Reset = {ctor: "Reset"};
+   var NoOp = {ctor: "NoOp"};
+   var actions = $Signal.mailbox(NoOp);
+   var model = A3($Signal.foldp,update,A2($Model.initialModel,2,$Random.initialSeed(6773)),actions.signal);
+   var markToString = function (mark) {    var _p2 = mark;switch (_p2.ctor) {case "X": return "X";case "O": return "O";default: return "";}};
+   var squareView = F3(function (rowNum,colNum,mark) {
+      var location = {ctor: "_Tuple2",_0: rowNum,_1: colNum};
+      var action = _U.eq(mark,$Model.NA) ? Turn(location) : NoOp;
+      return A2($Graphics$Input.button,A2($Signal.message,actions.address,action),markToString(mark));
+   });
+   var rowView = F3(function (bs,rowNum,items) {
+      var squares = A3($List.map2,squareView(rowNum),_U.range(0,bs),items);
+      return A2($Graphics$Element.flow,$Graphics$Element.right,squares);
+   });
    var view = F2(function (address,model) {
       var statusMessage = function () {
-         var _p5 = model.status;
-         switch (_p5.ctor)
+         var _p3 = model.status;
+         switch (_p3.ctor)
          {case "Win": return A2($Basics._op["++"],markToString(model.turn)," Wins!");
             case "Tie": return "It\'s a Tie!";
             default: return "Game is ongoing.";}
       }();
       var buttons = _U.list([A2($Graphics$Input.button,A2($Signal.message,actions.address,Reset),"Reset Game")
                             ,A2($Graphics$Input.button,A2($Signal.message,actions.address,IncreaseBoard),"Increase Board Size")]);
-      var board = _U.eq(model.status,Ongoing) ? A2($Graphics$Element.flow,
+      var board = _U.eq(model.status,$Model.Ongoing) ? A2($Graphics$Element.flow,
       $Graphics$Element.down,
       A3($List.map2,rowView(model.boardSize),_U.range(0,model.boardSize),model.board)) : $Graphics$Element.show("Play again!");
       return A2($Graphics$Element.flow,
       $Graphics$Element.down,
       _U.list([board,A2($Graphics$Element.flow,$Graphics$Element.right,buttons),$Graphics$Element.show(statusMessage)]));
    });
-   var initialBoard = function (numRows) {
-      var returnNum = function (_p6) {    return NA;};
-      return A2($List.map,function (i) {    return A2($List.map,returnNum,_U.range(0,numRows));},_U.range(0,numRows));
-   };
-   var initialModel = F2(function (bs,rs) {    return {board: initialBoard(bs),turn: X,status: Ongoing,boardSize: bs,randSeed: rs};});
-   var update = F2(function (action,model) {
-      var _p7 = action;
-      switch (_p7.ctor)
-      {case "NoOp": return model;
-         case "Reset": return A2(initialModel,2,model.randSeed);
-         case "IncreaseBoard": return A2(initialModel,model.boardSize + 1,model.randSeed);
-         default: var newModel = function (bModel) {
-              if (!_U.eq(bModel.status,Ongoing)) return changeTurn(bModel); else if (_U.eq(bModel.turn,O)) {
-                       var _p8 = randLocation(bModel);
-                       var loc = _p8._0;
-                       var newModel = _p8._1;
-                       return A2(update,Turn(loc),newModel);
-                    } else return bModel;
-           }(function (aModel) {    return changeTurn(aModel);}(checkWin(A2(updateSquare,_p7._0,model))));
-           return newModel;}
-   });
-   var model = A3($Signal.foldp,update,A2(initialModel,2,$Random.initialSeed(6773)),actions.signal);
    var main = A2($Signal.map,view(actions.address),model);
-   var Model = F5(function (a,b,c,d,e) {    return {board: a,turn: b,status: c,boardSize: d,randSeed: e};});
    return _elm.Main.values = {_op: _op
-                             ,Model: Model
-                             ,initialModel: initialModel
-                             ,initialBoard: initialBoard
-                             ,Ongoing: Ongoing
-                             ,Tie: Tie
-                             ,Win: Win
-                             ,X: X
-                             ,O: O
-                             ,NA: NA
+                             ,markToString: markToString
                              ,actions: actions
                              ,model: model
-                             ,markToString: markToString
-                             ,createScoreboard: createScoreboard
-                             ,listToStatus: listToStatus
-                             ,get: get
-                             ,fromJust: fromJust
-                             ,invertScoreboard: invertScoreboard
-                             ,invertUpVertical: invertUpVertical
-                             ,invertDownVertical: invertDownVertical
-                             ,randLocation: randLocation
-                             ,checkWin: checkWin
-                             ,updateSquare: updateSquare
-                             ,changeTurn: changeTurn
                              ,NoOp: NoOp
                              ,Reset: Reset
                              ,IncreaseBoard: IncreaseBoard
