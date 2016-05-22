@@ -1,24 +1,19 @@
-module Model (..) where
-
-import Random exposing (generate, int, initialSeed)
-
+module Model exposing (..)
 
 type alias Model =
   { board : Board
   , turn : Mark
   , status : Status
   , boardSize : Int
-  , randSeed : Random.Seed
   }
 
 
-initialModel : Int -> Random.Seed -> Model
-initialModel bs rs =
+initialModel : Int -> Model
+initialModel bs =
   { board = initialBoard bs
   , turn = X
   , status = Ongoing
   , boardSize = bs
-  , randSeed = rs
   }
 
 

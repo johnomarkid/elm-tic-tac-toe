@@ -1,6 +1,5 @@
-module GameLogic (..) where
+module GameLogic exposing (..)
 
-import Random exposing (generate, int, initialSeed)
 import Model exposing (..)
 
 
@@ -85,36 +84,36 @@ invertDownVertical board =
     [0..((List.length board) - 1)]
 
 
-randLocation : Model -> ( Location, Model )
-randLocation model =
-  let
-    randRange =
-      int 0 ((List.length model.board) - 1)
-
-    rowResult =
-      generate randRange model.randSeed
-
-    colResult =
-      generate randRange (snd rowResult)
-
-    -- use new seed from rowResult
-    location =
-      ( (fst rowResult), (fst colResult) )
-
-    newSeed =
-      snd colResult
-
-    newModel =
-      { model | randSeed = newSeed }
-
-    markAtLocation =
-      get (fst location) model.board
-        |> get (snd location)
-  in
-    if markAtLocation == NA then
-      ( location, newModel )
-    else
-      randLocation newModel
+-- randLocation : Model -> ( Location, Model )
+-- randLocation model =
+--   let
+--     randRange =
+--       int 0 ((List.length model.board) - 1)
+--
+--     rowResult =
+--       generate randRange model.randSeed
+--
+--     colResult =
+--       generate randRange (snd rowResult)
+--
+--     -- use new seed from rowResult
+--     location =
+--       ( (fst rowResult), (fst colResult) )
+--
+--     newSeed =
+--       snd colResult
+--
+--     newModel =
+--       { model | randSeed = newSeed }
+--
+--     markAtLocation =
+--       get (fst location) model.board
+--         |> get (snd location)
+--   in
+--     if markAtLocation == NA then
+--       ( location, newModel )
+--     else
+--       randLocation newModel
 
 
 

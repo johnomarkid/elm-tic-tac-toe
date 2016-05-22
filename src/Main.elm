@@ -1,10 +1,11 @@
-module Main (..) where
+module Main exposing (..)
 
-import Graphics.Element exposing (..)
-import Graphics.Input exposing (..)
-import Random exposing (initialSeed)
+import Html.App as Html
+import Html exposing (..)
+import Html.Events exposing (onClick)
+import Html.Attributes exposing (..)
 import Model exposing (..)
-import GameLogic exposing (updateSquare, checkWin, changeTurn, randLocation)
+import GameLogic exposing (updateSquare, checkWin, changeTurn)
 
 
 -- Helper
@@ -24,42 +25,27 @@ markToString mark =
 
 
 
--- Set up mailboxes and Signals
-
-
-actions : Signal.Mailbox Action
-actions =
-  Signal.mailbox NoOp
-
-
-model : Signal Model
-model =
-  -- initialize model with board size and random seed
-  Signal.foldp update (initialModel 2 (initialSeed 6773)) actions.signal
-
-
-
 --Update
 
 
-type Action
+type Msg
   = NoOp
   | Reset
   | IncreaseBoard
   | Turn Location
 
 
-update : Action -> Model -> Model
-update action model =
-  case action of
+update : Msg -> Model -> Model
+update msg model =
+  case msg of
     NoOp ->
       model
 
     Reset ->
-      initialModel 2 model.randSeed
+      initialModel 2
 
     IncreaseBoard ->
-      initialModel (model.boardSize + 1) model.randSeed
+      initialModel (model.boardSize + 1)
 
     Turn location ->
       let
@@ -74,11 +60,12 @@ update action model =
                     changeTurn bModel
                   else
                     (if bModel.turn == O then
-                      let
-                        ( loc, newModel ) =
-                          randLocation bModel
-                      in
-                        update (Turn loc) newModel
+                      -- let
+                      --   ( loc, newModel ) =
+                      --     randLocation bModel
+                      -- in
+                        --update (Turn loc) newModel
+                        bModel -- temporary
                      else
                       bModel
                     )
@@ -91,7 +78,7 @@ update action model =
 -- View
 
 
-squareView : Int -> Int -> Mark -> Element
+squareView : Int -> Int -> Mark -> Html Msg
 squareView rowNum colNum mark =
   let
     location =
@@ -103,33 +90,35 @@ squareView rowNum colNum mark =
       else
         NoOp
   in
-    button (Signal.message actions.address action) (markToString mark)
+    div [  onClick action
+            , style [("width", "50px"), ("height", "50px"), ("background-color", "gray"), ("border", "1px solid black"), ("justify-content", "center"), ("align-items", "center") ,("display", "flex")]]
+            [text (markToString mark)]
 
 
-rowView : Int -> Int -> List Mark -> Element
+rowView : Int -> Int -> List Mark -> Html Msg
 rowView bs rowNum items =
   let
     squares =
       List.map2 (squareView rowNum) [0..bs] items
   in
-    flow right squares
+    div [style [("display", "flex")]] squares
 
 
-view : Signal.Address Action -> Model -> Element
-view address model =
+
+view : Model -> Html Msg
+view model =
   let
     board =
       if model.status == Ongoing then
-        flow
-          down
-          (List.map2 (rowView model.boardSize) [0..model.boardSize] model.board)
+          div []
+            (List.map2 (rowView model.boardSize) [0..model.boardSize] model.board)
       else
-        show "Play again!"
+        div [] [text "Play again!"]
 
     buttons =
-      [ button (Signal.message actions.address Reset) "Reset Game"
-      , button (Signal.message actions.address IncreaseBoard) "Increase Board Size"
-      ]
+      div [] [
+       button [onClick Reset] [text "Reset Game"]
+      , button [onClick IncreaseBoard] [text "Increase Board Size"]]
 
     statusMessage =
       (case model.status of
@@ -143,11 +132,8 @@ view address model =
           "Game is ongoing."
       )
   in
-    flow
-      down
-      [ board, (flow right buttons), (show statusMessage) ]
+    div [] [board, buttons, div [] [text statusMessage]]
 
-
-main : Signal Element
+main: Program Never
 main =
-  Signal.map (view actions.address) model
+  Html.beginnerProgram { model = (initialModel 2), view = view, update = update }
