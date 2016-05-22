@@ -5,7 +5,7 @@ import Html exposing (..)
 import Html.Events exposing (onClick)
 import Html.Attributes exposing (..)
 import Model exposing (..)
-import GameLogic exposing (updateSquare, checkWin, changeTurn)
+import GameLogic exposing (updateSquare, checkWin, changeTurn, omarmax)
 
 
 -- Helper
@@ -60,12 +60,11 @@ update msg model =
                     changeTurn bModel
                   else
                     (if bModel.turn == O then
-                      -- let
-                      --   ( loc, newModel ) =
-                      --     randLocation bModel
-                      -- in
-                        --update (Turn loc) newModel
-                        bModel -- temporary
+                      let
+                        ( loc, newModel ) =
+                          omarmax bModel
+                      in
+                        update (Turn loc) newModel
                      else
                       bModel
                     )

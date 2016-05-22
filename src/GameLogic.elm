@@ -84,36 +84,147 @@ invertDownVertical board =
     [0..((List.length board) - 1)]
 
 
--- randLocation : Model -> ( Location, Model )
--- randLocation model =
---   let
---     randRange =
---       int 0 ((List.length model.board) - 1)
---
---     rowResult =
---       generate randRange model.randSeed
---
---     colResult =
---       generate randRange (snd rowResult)
---
---     -- use new seed from rowResult
---     location =
---       ( (fst rowResult), (fst colResult) )
---
---     newSeed =
---       snd colResult
---
---     newModel =
---       { model | randSeed = newSeed }
---
---     markAtLocation =
---       get (fst location) model.board
---         |> get (snd location)
---   in
---     if markAtLocation == NA then
---       ( location, newModel )
---     else
---       randLocation newModel
+scoreUpVertical : Mark -> Board -> List number
+scoreUpVertical mark board =
+  let
+    boardLength =
+      ((List.length board) - 1)
+  in
+    List.map2
+      (\row index ->
+        if (get (boardLength - index) row) == mark then
+          1
+        else
+          0
+      )
+      board
+      [0..boardLength]
+
+
+scoreDownVertical : Mark -> Board -> List number
+scoreDownVertical mark board =
+  List.map2
+    (\row index ->
+      if (get (0 + index) row) == mark then
+        1
+      else
+        0
+    )
+    board
+    [0..((List.length board) - 1)]
+
+
+upVerticalLocations : Board -> List Location
+upVerticalLocations board =
+  let
+    boardLength =
+      ((List.length board) - 1)
+  in
+    List.map2
+      (\row index ->
+        (index, (boardLength - index))
+      )
+      board
+      [0..boardLength]
+
+downVerticalLocations : Board -> List Location
+downVerticalLocations board =
+  List.map2
+    (\_ index ->
+      (index, index)
+    )
+    board
+    [0..((List.length board) - 1)]
+
+potentialScore : Location -> Mark -> Board -> Int
+potentialScore location mark board =
+  -- calculate the score for rows, cols, and verticals
+  -- return the max score
+  let
+    rowScore =
+      get (fst location) board
+      |> List.map (\v -> if v == mark then 1 else 0)
+      |> Debug.log "row: "
+      |> List.sum
+
+    colScore =
+      invertScoreboard board
+      |> get (snd location)
+      |> List.map (\v -> if v == mark then 1 else 0)
+      |> Debug.log "col: "
+      |> List.sum
+
+    -- only look at verticals if our location is on the vertical
+    upVerticalScore =
+      if List.member location (upVerticalLocations board) then
+        scoreUpVertical mark board
+        |> Debug.log "up vert: "
+        |> List.sum
+      else
+        0
+
+    downVerticalScore =
+      if List.member location (downVerticalLocations board) then
+        scoreDownVertical mark board
+        |> Debug.log "down vert: "
+        |> List.sum
+      else
+        0
+
+  in
+    List.maximum [ rowScore, colScore, upVerticalScore, downVerticalScore]
+    |> fromJust
+
+createPotentialScoreboard : Mark -> Board -> List (List (Int, Location))
+createPotentialScoreboard mark board =
+  (List.map2
+    (\row items ->
+      List.map2
+        (\col item ->
+          if item == NA then
+            -- calculate potential score for location if location is empty
+            (potentialScore (row, col) mark board, (row, col))
+          else
+            -- location empty. not a possible move.
+            (0, (row, col))
+        )
+        [0..((List.length board) - 1)]
+        items
+    )
+    [0..((List.length board) - 1)]
+    board
+  )
+
+maxLocation : List (List (Int, Location)) -> Location
+maxLocation board =
+  -- have board of potential scores and locations like:
+  -- [(2, (0, 2)), (1, (1, 2)), ..]
+  -- find the max score and that is the location we want to place our cpu move
+  let
+    loc =
+      List.concat board
+      |> List.sortBy fst
+      |> List.reverse
+      |> get 0
+      |> snd
+  in
+    loc
+
+
+omarmax : Model -> (Location, Model)
+omarmax model =
+  let
+  -- find available locations on board
+  -- calculate potential X score for each location
+  -- return the location that X has gained the most points in
+    turnLocation =
+      createPotentialScoreboard X model.board
+      |> Debug.log "scoreboard: "
+      |> maxLocation
+
+  in
+    (turnLocation, model)
+
 
 
 

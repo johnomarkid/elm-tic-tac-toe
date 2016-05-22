@@ -1,0 +1,23 @@
+{
+  "name": "tictactoe",
+  "version": "1.0.0",
+  "description": "A Tic Tac Toe game in Elm",
+  "main": "elm.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/johnomarkid/elm-tic-tac-toe.git"
+  },
+  "author": "John Omar",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/johnomarkid/elm-tic-tac-toe/issues"
+  },
+  "homepage": "https://github.com/johnomarkid/elm-tic-tac-toe#readme",
+  "devDependencies": {
+    "chokidar-cli": "^1.2.0",
+    "elm": "^0.17.0"
+  }
+}
